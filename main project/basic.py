@@ -1,17 +1,43 @@
 DIGITS = '0123456789'
 
 class Error:
-    def __init__(self, error_name, details):
+    def __init__(self, pos_start, pos_end, error_name, details):
+        self.pos_start = pos_start
+        self.pos_end = pos_end  
         self.error_name = error_name
         self.details = details
     
     def as_string(self):
         result  = f'{self.error_name}: {self.details}\n'
+        result += f'File {self.pos_start.file_name}, Line {self.pos_start.line + 1}'
         return result
 
 class IllegalCharError(Error):
-    def __init__(self, details):
-        super().__init__('Illegal Character', details)
+    def __init__(self, pos_start, pos_end, details):
+        super().__init__(pos_start, pos_end, 'Illegal Character', details)
+
+
+class Position:
+    def __init__(self, index, line, colomn, file_name, file_text):
+        self.index = index 
+        self.line = line 
+        self.colomn = colomn
+        self.file_name = file_name
+        self.file_text = file_text
+        
+    def advance(self, current_char):
+        self.index += 1 
+        self.colomn += 1 
+        
+        if current_char == "\n":
+            self.line += 1 
+            self.colomn = 0
+            
+        return self
+    
+    def copy(self):
+        return Position(self.index, self.line, self.colomn, self.file_name, self.file_text)
+        
 
 TT_INT		= 'INT'
 TT_FLOAT    = 'FLOAT'
@@ -33,15 +59,16 @@ class Token:
     
     
 class Lexer:
-    def __init__(self, text):
-        self.pos = -1
+    def __init__(self, file_name, text):
+        self.file_name = file_name
+        self.pos = Position(-1, 0, -1, file_name, text)
         self.text = text
         self.current_char = None
         self.advance()
     
     def advance(self):
-        self.pos += 1 
-        self.current_char = self.text[self.pos] if self.pos < len(self.text) else None
+        self.pos.advance(self.current_char)
+        self.current_char = self.text[self.pos.index] if self.pos.index < len(self.text) else None
 
     def make_tokens(self):
         tokens = []
@@ -73,7 +100,7 @@ class Lexer:
                 pos_start = self.pos.copy()
                 char = self.current_char
                 self.advance()
-                return [], IllegalCharError("'" + char + "'")
+                return [], IllegalCharError(pos_start, self.pos, "'" + char + "'")
 
         return tokens, None
 
@@ -96,8 +123,8 @@ class Lexer:
             return Token(TT_FLOAT, float(num_str))
 
 
-def run(text):
-    lexer = Lexer(text)
+def run(file_name, text):
+    lexer = Lexer(file_name, text)
     tokens, error = lexer.make_tokens()
 
     return tokens, error
