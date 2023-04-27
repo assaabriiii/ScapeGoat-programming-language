@@ -14,5 +14,5 @@ XD("Greetings universe!")
 FOR i = 0 TO 5 THEN
     map()
 	join()
-	XD("DODOL")
+	XD("hello")
 END
